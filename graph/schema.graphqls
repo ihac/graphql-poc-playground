@@ -1,0 +1,40 @@
+# GraphQL schema example
+#
+# https://gqlgen.com/getting-started/
+
+type Company {
+  id: ID!
+  name: String!
+  address: String!
+  employees: [User!]!
+}
+
+type User {
+  id: ID!
+  name: String!
+  age: Int!
+  companyId: ID!
+}
+
+type Query {
+  companies: [Company!]!
+  company(id: ID!): Company
+  users: [User!]!
+  user(id: ID!): User
+}
+
+input NewCompany {
+  name: String!
+  address: String!
+}
+
+input NewUser {
+  name: String!
+  age: Int!
+  companyId: ID!
+}
+
+type Mutation {
+  createCompany(input: NewCompany!): Company!
+  createUser(input: NewUser!): User!
+}
