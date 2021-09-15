@@ -2,14 +2,14 @@
 #
 # https://gqlgen.com/getting-started/
 
-type Company {
+type Company @key(fields: "id") {
   id: ID!
   name: String!
   address: String!
   employees: [User!]!
 }
 
-type User {
+type User @key(fields: "name") {
   id: ID!
   name: String!
   age: Int!

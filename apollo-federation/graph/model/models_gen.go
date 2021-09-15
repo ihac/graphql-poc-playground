@@ -9,6 +9,8 @@ type Company struct {
 	Employees []*User `json:"employees"`
 }
 
+func (Company) IsEntity() {}
+
 type NewCompany struct {
 	Name    string `json:"name"`
 	Address string `json:"address"`
@@ -26,3 +28,5 @@ type User struct {
 	Age       int    `json:"age"`
 	CompanyID string `json:"companyId"`
 }
+
+func (User) IsEntity() {}

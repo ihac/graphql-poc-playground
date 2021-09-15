@@ -6,8 +6,8 @@ package graph
 import (
 	"context"
 
-	"github.com/hotstar/graphql-poc-playground/graph/generated"
-	"github.com/hotstar/graphql-poc-playground/graph/model"
+	"github.com/ihac/graphql-poc-playground/apollo-federation/graph/generated"
+	"github.com/ihac/graphql-poc-playground/apollo-federation/graph/model"
 )
 
 func (r *mutationResolver) CreateCompany(ctx context.Context, input model.NewCompany) (*model.Company, error) {

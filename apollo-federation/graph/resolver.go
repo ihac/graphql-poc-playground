@@ -6,7 +6,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/hotstar/graphql-poc-playground/graph/model"
+	"github.com/ihac/graphql-poc-playground/apollo-federation/graph/model"
 )
 
 // This file will not be regenerated automatically.

@@ -7,11 +7,11 @@ import (
 
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
-	"github.com/hotstar/graphql-poc-playground/graph"
-	"github.com/hotstar/graphql-poc-playground/graph/generated"
+	"github.com/ihac/graphql-poc-playground/apollo-federation/graph"
+	"github.com/ihac/graphql-poc-playground/apollo-federation/graph/generated"
 )
 
-const defaultPort = "8090"
+const defaultPort = "8080"
 
 func main() {
 	port := os.Getenv("PORT")
@@ -19,7 +19,7 @@ func main() {
 		port = defaultPort
 	}
 
-	srv := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: graph.NewResolver()}))
+	srv := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: &graph.Resolver{}}))
 
 	http.Handle("/", playground.Handler("GraphQL playground", "/query"))
 	http.Handle("/query", srv)
