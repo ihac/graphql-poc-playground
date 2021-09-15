@@ -2,10 +2,10 @@
 
 ## Getting Started
 
-Start 3 domain services:
+Start 4 domain services:
 
 ```bash
-# dir: content, social, ads
+# dir: masthead content, social, ads
 go run .
 ```
 
