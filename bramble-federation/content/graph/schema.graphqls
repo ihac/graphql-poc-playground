@@ -1,0 +1,18 @@
+directive @boundary on OBJECT | FIELD_DEFINITION
+
+type ContentItem @boundary {
+  id: ID!
+  title: String!
+  description: String!
+}
+
+type Service {
+  name: String!
+  version: String!
+  schema: String!
+}
+
+type Query {
+  contentItem(id: ID!): ContentItem @boundary
+  service: Service!
+}

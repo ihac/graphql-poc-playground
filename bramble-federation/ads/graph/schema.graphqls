@@ -1,0 +1,17 @@
+directive @boundary on OBJECT | FIELD_DEFINITION
+
+type AdvtItem @boundary {
+  id: ID!
+  trackerUrl: String!
+}
+
+type Service {
+  name: String!
+  version: String!
+  schema: String!
+}
+
+type Query {
+  advtItem(id: ID!): AdvtItem @boundary
+  service: Service!
+}

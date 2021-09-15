@@ -1,0 +1,17 @@
+{
+  "log-level": "error",
+  "services": [
+    "http://localhost:4001/query",
+    "http://localhost:4002/query",
+    "http://localhost:4003/query",
+    "http://localhost:4004/query"
+  ],
+  "plugins": [
+    {
+      "name": "admin-ui"
+    },
+    {
+      "name": "playground"
+    }
+  ]
+}

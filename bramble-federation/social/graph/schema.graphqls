@@ -1,0 +1,18 @@
+directive @boundary on OBJECT | FIELD_DEFINITION
+
+type ScoreCard @boundary {
+  id: ID!
+  teamAScore: Int!
+  teamBScore: Int!
+}
+
+type Service {
+  name: String!
+  version: String!
+  schema: String!
+}
+
+type Query {
+  scoreCard(id: ID!): ScoreCard @boundary
+  service: Service!
+}

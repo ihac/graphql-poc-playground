@@ -1,0 +1,31 @@
+directive @boundary on OBJECT | FIELD_DEFINITION
+
+union MastheadItem = ContentItem | ScoreCard | AdvtItem
+
+type ContentItem @boundary {
+  id: ID!
+  test: Boolean!
+}
+
+type ScoreCard @boundary {
+  id: ID!
+}
+
+type AdvtItem @boundary {
+  id: ID!
+}
+
+type Service {
+  name: String!
+  version: String!
+  schema: String!
+}
+
+type Query {
+  masthead(count: Int): [MastheadItem!]
+  contentItem(id: ID!): ContentItem @boundary
+  advtItem(id: ID!): AdvtItem @boundary
+  scoreCard(id: ID!): ScoreCard @boundary
+  service: Service!
+  randomContent: ContentItem!
+}
