@@ -1,10 +1,25 @@
 directive @boundary on OBJECT | FIELD_DEFINITION
 
-union MastheadItem = ContentItem | ScoreCard | AdvtItem
+union MastheadItem =
+    ContentItem
+  | ScoreCard
+  | AdvtItem
+  | ContentItemWithScoreCard
+
+type Masthead {
+  contentItems: [ContentItem!]
+  contentItemsWithScoreCard: [ContentItemWithScoreCard!]
+  scoreCards: [ScoreCard!]
+  advtItems: [AdvtItem!]
+}
 
 type ContentItem @boundary {
   id: ID!
   test: Boolean!
+}
+
+type ContentItemWithScoreCard @boundary {
+  id: ID!
 }
 
 type ScoreCard @boundary {
@@ -23,9 +38,10 @@ type Service {
 
 type Query {
   masthead(count: Int): [MastheadItem!]
+  masthead_v2(count: Int): Masthead!
   contentItem(id: ID!): ContentItem @boundary
+  contentItemWithScoreCard(id: ID!): ContentItemWithScoreCard @boundary
   advtItem(id: ID!): AdvtItem @boundary
   scoreCard(id: ID!): ScoreCard @boundary
   service: Service!
-  randomContent: ContentItem!
 }

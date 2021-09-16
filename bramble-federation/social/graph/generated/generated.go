@@ -45,11 +45,13 @@ type DirectiveRoot struct {
 
 type ComplexityRoot struct {
 	Query struct {
-		ScoreCard func(childComplexity int, id string) int
-		Service   func(childComplexity int) int
+		ScoreCard    func(childComplexity int, id string) int
+		ScoreCardAds func(childComplexity int, id string) int
+		Service      func(childComplexity int) int
 	}
 
 	ScoreCard struct {
+		Ads        func(childComplexity int) int
 		ID         func(childComplexity int) int
 		TeamAScore func(childComplexity int) int
 		TeamBScore func(childComplexity int) int
@@ -60,10 +62,15 @@ type ComplexityRoot struct {
 		Schema  func(childComplexity int) int
 		Version func(childComplexity int) int
 	}
+
+	TinyAdsBanner struct {
+		ID func(childComplexity int) int
+	}
 }
 
 type QueryResolver interface {
 	ScoreCard(ctx context.Context, id string) (*model.ScoreCard, error)
+	ScoreCardAds(ctx context.Context, id string) (*model.TinyAdsBanner, error)
 	Service(ctx context.Context) (*model.Service, error)
 }
 
@@ -94,12 +101,31 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.ScoreCard(childComplexity, args["id"].(string)), true
 
+	case "Query.scoreCard__ads":
+		if e.complexity.Query.ScoreCardAds == nil {
+			break
+		}
+
+		args, err := ec.field_Query_scoreCard__ads_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.ScoreCardAds(childComplexity, args["id"].(string)), true
+
 	case "Query.service":
 		if e.complexity.Query.Service == nil {
 			break
 		}
 
 		return e.complexity.Query.Service(childComplexity), true
+
+	case "ScoreCard.ads":
+		if e.complexity.ScoreCard.Ads == nil {
+			break
+		}
+
+		return e.complexity.ScoreCard.Ads(childComplexity), true
 
 	case "ScoreCard.id":
 		if e.complexity.ScoreCard.ID == nil {
@@ -142,6 +168,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Service.Version(childComplexity), true
+
+	case "TinyAdsBanner.id":
+		if e.complexity.TinyAdsBanner.ID == nil {
+			break
+		}
+
+		return e.complexity.TinyAdsBanner.ID(childComplexity), true
 
 	}
 	return 0, false
@@ -195,10 +228,16 @@ func (ec *executionContext) introspectType(name string) (*introspection.Type, er
 var sources = []*ast.Source{
 	{Name: "graph/schema.graphqls", Input: `directive @boundary on OBJECT | FIELD_DEFINITION
 
+type TinyAdsBanner @boundary {
+  id: ID!
+}
+
 type ScoreCard @boundary {
   id: ID!
   teamAScore: Int!
   teamBScore: Int!
+
+  ads: TinyAdsBanner!
 }
 
 type Service {
@@ -209,6 +248,7 @@ type Service {
 
 type Query {
   scoreCard(id: ID!): ScoreCard @boundary
+  scoreCard__ads(id: ID!): TinyAdsBanner @boundary
   service: Service!
 }
 `, BuiltIn: false},
@@ -231,6 +271,21 @@ func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs
 		}
 	}
 	args["name"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_scoreCard__ads_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["id"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["id"] = arg0
 	return args, nil
 }
 
@@ -350,6 +405,71 @@ func (ec *executionContext) _Query_scoreCard(ctx context.Context, field graphql.
 	res := resTmp.(*model.ScoreCard)
 	fc.Result = res
 	return ec.marshalOScoreCard2ᚖgithubᚗcomᚋihacᚋgraphqlᚑpocᚑplaygroundᚋbrambleᚑfederationᚋsocialᚋgraphᚋmodelᚐScoreCard(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_scoreCard__ads(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_scoreCard__ads_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Query().ScoreCardAds(rctx, args["id"].(string))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.Boundary == nil {
+				return nil, errors.New("directive boundary is not implemented")
+			}
+			return ec.directives.Boundary(ctx, nil, directive0)
+		}
+		directive2 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.Boundary == nil {
+				return nil, errors.New("directive boundary is not implemented")
+			}
+			return ec.directives.Boundary(ctx, nil, directive1)
+		}
+
+		tmp, err := directive2(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*model.TinyAdsBanner); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *github.com/ihac/graphql-poc-playground/bramble-federation/social/graph/model.TinyAdsBanner`, tmp)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.TinyAdsBanner)
+	fc.Result = res
+	return ec.marshalOTinyAdsBanner2ᚖgithubᚗcomᚋihacᚋgraphqlᚑpocᚑplaygroundᚋbrambleᚑfederationᚋsocialᚋgraphᚋmodelᚐTinyAdsBanner(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_service(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -563,6 +683,61 @@ func (ec *executionContext) _ScoreCard_teamBScore(ctx context.Context, field gra
 	return ec.marshalNInt2int(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _ScoreCard_ads(ctx context.Context, field graphql.CollectedField, obj *model.ScoreCard) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "ScoreCard",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return obj.Ads, nil
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.Boundary == nil {
+				return nil, errors.New("directive boundary is not implemented")
+			}
+			return ec.directives.Boundary(ctx, obj, directive0)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*model.TinyAdsBanner); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *github.com/ihac/graphql-poc-playground/bramble-federation/social/graph/model.TinyAdsBanner`, tmp)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.TinyAdsBanner)
+	fc.Result = res
+	return ec.marshalNTinyAdsBanner2ᚖgithubᚗcomᚋihacᚋgraphqlᚑpocᚑplaygroundᚋbrambleᚑfederationᚋsocialᚋgraphᚋmodelᚐTinyAdsBanner(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Service_name(ctx context.Context, field graphql.CollectedField, obj *model.Service) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -666,6 +841,41 @@ func (ec *executionContext) _Service_schema(ctx context.Context, field graphql.C
 	res := resTmp.(string)
 	fc.Result = res
 	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _TinyAdsBanner_id(ctx context.Context, field graphql.CollectedField, obj *model.TinyAdsBanner) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "TinyAdsBanner",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNID2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) ___Directive_name(ctx context.Context, field graphql.CollectedField, obj *introspection.Directive) (ret graphql.Marshaler) {
@@ -1824,6 +2034,17 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 				res = ec._Query_scoreCard(ctx, field)
 				return res
 			})
+		case "scoreCard__ads":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_scoreCard__ads(ctx, field)
+				return res
+			})
 		case "service":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
@@ -1879,6 +2100,11 @@ func (ec *executionContext) _ScoreCard(ctx context.Context, sel ast.SelectionSet
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
+		case "ads":
+			out.Values[i] = ec._ScoreCard_ads(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -1913,6 +2139,33 @@ func (ec *executionContext) _Service(ctx context.Context, sel ast.SelectionSet, 
 			}
 		case "schema":
 			out.Values[i] = ec._Service_schema(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var tinyAdsBannerImplementors = []string{"TinyAdsBanner"}
+
+func (ec *executionContext) _TinyAdsBanner(ctx context.Context, sel ast.SelectionSet, obj *model.TinyAdsBanner) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, tinyAdsBannerImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("TinyAdsBanner")
+		case "id":
+			out.Values[i] = ec._TinyAdsBanner_id(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -2251,6 +2504,16 @@ func (ec *executionContext) marshalNString2string(ctx context.Context, sel ast.S
 	return res
 }
 
+func (ec *executionContext) marshalNTinyAdsBanner2ᚖgithubᚗcomᚋihacᚋgraphqlᚑpocᚑplaygroundᚋbrambleᚑfederationᚋsocialᚋgraphᚋmodelᚐTinyAdsBanner(ctx context.Context, sel ast.SelectionSet, v *model.TinyAdsBanner) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._TinyAdsBanner(ctx, sel, v)
+}
+
 func (ec *executionContext) marshalN__Directive2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐDirective(ctx context.Context, sel ast.SelectionSet, v introspection.Directive) graphql.Marshaler {
 	return ec.___Directive(ctx, sel, &v)
 }
@@ -2561,6 +2824,13 @@ func (ec *executionContext) marshalOString2ᚖstring(ctx context.Context, sel as
 		return graphql.Null
 	}
 	return graphql.MarshalString(*v)
+}
+
+func (ec *executionContext) marshalOTinyAdsBanner2ᚖgithubᚗcomᚋihacᚋgraphqlᚑpocᚑplaygroundᚋbrambleᚑfederationᚋsocialᚋgraphᚋmodelᚐTinyAdsBanner(ctx context.Context, sel ast.SelectionSet, v *model.TinyAdsBanner) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._TinyAdsBanner(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalO__EnumValue2ᚕgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐEnumValueᚄ(ctx context.Context, sel ast.SelectionSet, v []introspection.EnumValue) graphql.Marshaler {

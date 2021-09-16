@@ -8,18 +8,58 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
+	"strconv"
 
 	"github.com/ihac/graphql-poc-playground/bramble-federation/content/graph/generated"
 	"github.com/ihac/graphql-poc-playground/bramble-federation/content/graph/model"
 )
 
 func (r *queryResolver) ContentItem(ctx context.Context, id string) (*model.ContentItem, error) {
-	fmt.Printf("query: %s\n", id)
+	fmt.Printf("query: content %s\n", id)
 	idx := rand.Intn(len(titles))
 	return &model.ContentItem{
 		ID:          id,
 		Title:       titles[idx],
 		Description: fmt.Sprintf("This is the description of %s", titles[idx]),
+	}, nil
+}
+
+func (r *queryResolver) ContentItemWithScoreCard(ctx context.Context, id string) (*model.ContentItemWithScoreCard, error) {
+	fmt.Printf("query: content with score %s\n", id)
+	idx := rand.Intn(len(titles))
+	return &model.ContentItemWithScoreCard{
+		ID:    id,
+		Title: titles[idx],
+		Score: &model.ScoreCard{
+			ID: strconv.Itoa(rand.Intn(1000)),
+		},
+	}, nil
+}
+
+func (r *queryResolver) ContentItemWithScoreCardScore(ctx context.Context, id string) (*model.ScoreCard, error) {
+	fmt.Printf("query: score card %s\n", id)
+	return &model.ScoreCard{ID: id}, nil
+}
+
+func (r *queryResolver) RandomContent(ctx context.Context) (*model.ContentItem, error) {
+	fmt.Println("query: random content")
+	idx := rand.Intn(len(titles))
+	return &model.ContentItem{
+		ID:          "random",
+		Title:       titles[idx],
+		Description: fmt.Sprintf("This is the description of %s", titles[idx]),
+	}, nil
+}
+
+func (r *queryResolver) RandomContentWithScoreCard(ctx context.Context) (*model.ContentItemWithScoreCard, error) {
+	fmt.Println("query: random content with score")
+	idx := rand.Intn(len(titles))
+	return &model.ContentItemWithScoreCard{
+		ID:    "random",
+		Title: titles[idx],
+		Score: &model.ScoreCard{
+			ID: strconv.Itoa(rand.Intn(1000)),
+		},
 	}, nil
 }
 

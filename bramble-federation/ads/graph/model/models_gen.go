@@ -12,3 +12,8 @@ type Service struct {
 	Version string `json:"version"`
 	Schema  string `json:"schema"`
 }
+
+type TinyAdsBanner struct {
+	ID      string `json:"id"`
+	Message string `json:"message"`
+}

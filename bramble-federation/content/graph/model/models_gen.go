@@ -8,6 +8,16 @@ type ContentItem struct {
 	Description string `json:"description"`
 }
 
+type ContentItemWithScoreCard struct {
+	ID    string     `json:"id"`
+	Title string     `json:"title"`
+	Score *ScoreCard `json:"score"`
+}
+
+type ScoreCard struct {
+	ID string `json:"id"`
+}
+
 type Service struct {
 	Name    string `json:"name"`
 	Version string `json:"version"`

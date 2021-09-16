@@ -53,13 +53,25 @@ type ComplexityRoot struct {
 		Test func(childComplexity int) int
 	}
 
+	ContentItemWithScoreCard struct {
+		ID func(childComplexity int) int
+	}
+
+	Masthead struct {
+		AdvtItems                 func(childComplexity int) int
+		ContentItems              func(childComplexity int) int
+		ContentItemsWithScoreCard func(childComplexity int) int
+		ScoreCards                func(childComplexity int) int
+	}
+
 	Query struct {
-		AdvtItem      func(childComplexity int, id string) int
-		ContentItem   func(childComplexity int, id string) int
-		Masthead      func(childComplexity int, count *int) int
-		RandomContent func(childComplexity int) int
-		ScoreCard     func(childComplexity int, id string) int
-		Service       func(childComplexity int) int
+		AdvtItem                 func(childComplexity int, id string) int
+		ContentItem              func(childComplexity int, id string) int
+		ContentItemWithScoreCard func(childComplexity int, id string) int
+		Masthead                 func(childComplexity int, count *int) int
+		MastheadV2               func(childComplexity int, count *int) int
+		ScoreCard                func(childComplexity int, id string) int
+		Service                  func(childComplexity int) int
 	}
 
 	ScoreCard struct {
@@ -75,11 +87,12 @@ type ComplexityRoot struct {
 
 type QueryResolver interface {
 	Masthead(ctx context.Context, count *int) ([]model.MastheadItem, error)
+	MastheadV2(ctx context.Context, count *int) (*model.Masthead, error)
 	ContentItem(ctx context.Context, id string) (*model.ContentItem, error)
+	ContentItemWithScoreCard(ctx context.Context, id string) (*model.ContentItemWithScoreCard, error)
 	AdvtItem(ctx context.Context, id string) (*model.AdvtItem, error)
 	ScoreCard(ctx context.Context, id string) (*model.ScoreCard, error)
 	Service(ctx context.Context) (*model.Service, error)
-	RandomContent(ctx context.Context) (*model.ContentItem, error)
 }
 
 type executableSchema struct {
@@ -118,6 +131,41 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.ContentItem.Test(childComplexity), true
 
+	case "ContentItemWithScoreCard.id":
+		if e.complexity.ContentItemWithScoreCard.ID == nil {
+			break
+		}
+
+		return e.complexity.ContentItemWithScoreCard.ID(childComplexity), true
+
+	case "Masthead.advtItems":
+		if e.complexity.Masthead.AdvtItems == nil {
+			break
+		}
+
+		return e.complexity.Masthead.AdvtItems(childComplexity), true
+
+	case "Masthead.contentItems":
+		if e.complexity.Masthead.ContentItems == nil {
+			break
+		}
+
+		return e.complexity.Masthead.ContentItems(childComplexity), true
+
+	case "Masthead.contentItemsWithScoreCard":
+		if e.complexity.Masthead.ContentItemsWithScoreCard == nil {
+			break
+		}
+
+		return e.complexity.Masthead.ContentItemsWithScoreCard(childComplexity), true
+
+	case "Masthead.scoreCards":
+		if e.complexity.Masthead.ScoreCards == nil {
+			break
+		}
+
+		return e.complexity.Masthead.ScoreCards(childComplexity), true
+
 	case "Query.advtItem":
 		if e.complexity.Query.AdvtItem == nil {
 			break
@@ -142,6 +190,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.ContentItem(childComplexity, args["id"].(string)), true
 
+	case "Query.contentItemWithScoreCard":
+		if e.complexity.Query.ContentItemWithScoreCard == nil {
+			break
+		}
+
+		args, err := ec.field_Query_contentItemWithScoreCard_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.ContentItemWithScoreCard(childComplexity, args["id"].(string)), true
+
 	case "Query.masthead":
 		if e.complexity.Query.Masthead == nil {
 			break
@@ -154,12 +214,17 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.Masthead(childComplexity, args["count"].(*int)), true
 
-	case "Query.randomContent":
-		if e.complexity.Query.RandomContent == nil {
+	case "Query.masthead_v2":
+		if e.complexity.Query.MastheadV2 == nil {
 			break
 		}
 
-		return e.complexity.Query.RandomContent(childComplexity), true
+		args, err := ec.field_Query_masthead_v2_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.MastheadV2(childComplexity, args["count"].(*int)), true
 
 	case "Query.scoreCard":
 		if e.complexity.Query.ScoreCard == nil {
@@ -260,11 +325,26 @@ func (ec *executionContext) introspectType(name string) (*introspection.Type, er
 var sources = []*ast.Source{
 	{Name: "graph/schema.graphqls", Input: `directive @boundary on OBJECT | FIELD_DEFINITION
 
-union MastheadItem = ContentItem | ScoreCard | AdvtItem
+union MastheadItem =
+    ContentItem
+  | ScoreCard
+  | AdvtItem
+  | ContentItemWithScoreCard
+
+type Masthead {
+  contentItems: [ContentItem!]
+  contentItemsWithScoreCard: [ContentItemWithScoreCard!]
+  scoreCards: [ScoreCard!]
+  advtItems: [AdvtItem!]
+}
 
 type ContentItem @boundary {
   id: ID!
   test: Boolean!
+}
+
+type ContentItemWithScoreCard @boundary {
+  id: ID!
 }
 
 type ScoreCard @boundary {
@@ -283,11 +363,12 @@ type Service {
 
 type Query {
   masthead(count: Int): [MastheadItem!]
+  masthead_v2(count: Int): Masthead!
   contentItem(id: ID!): ContentItem @boundary
+  contentItemWithScoreCard(id: ID!): ContentItemWithScoreCard @boundary
   advtItem(id: ID!): AdvtItem @boundary
   scoreCard(id: ID!): ScoreCard @boundary
   service: Service!
-  randomContent: ContentItem!
 }
 `, BuiltIn: false},
 }
@@ -327,6 +408,21 @@ func (ec *executionContext) field_Query_advtItem_args(ctx context.Context, rawAr
 	return args, nil
 }
 
+func (ec *executionContext) field_Query_contentItemWithScoreCard_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["id"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["id"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Query_contentItem_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
@@ -343,6 +439,21 @@ func (ec *executionContext) field_Query_contentItem_args(ctx context.Context, ra
 }
 
 func (ec *executionContext) field_Query_masthead_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *int
+	if tmp, ok := rawArgs["count"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("count"))
+		arg0, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["count"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_masthead_v2_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
 	var arg0 *int
@@ -515,6 +626,249 @@ func (ec *executionContext) _ContentItem_test(ctx context.Context, field graphql
 	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _ContentItemWithScoreCard_id(ctx context.Context, field graphql.CollectedField, obj *model.ContentItemWithScoreCard) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "ContentItemWithScoreCard",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNID2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Masthead_contentItems(ctx context.Context, field graphql.CollectedField, obj *model.Masthead) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Masthead",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return obj.ContentItems, nil
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.Boundary == nil {
+				return nil, errors.New("directive boundary is not implemented")
+			}
+			return ec.directives.Boundary(ctx, obj, directive0)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.([]*model.ContentItem); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be []*github.com/ihac/graphql-poc-playground/bramble-federation/masthead/graph/model.ContentItem`, tmp)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]*model.ContentItem)
+	fc.Result = res
+	return ec.marshalOContentItem2ᚕᚖgithubᚗcomᚋihacᚋgraphqlᚑpocᚑplaygroundᚋbrambleᚑfederationᚋmastheadᚋgraphᚋmodelᚐContentItemᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Masthead_contentItemsWithScoreCard(ctx context.Context, field graphql.CollectedField, obj *model.Masthead) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Masthead",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return obj.ContentItemsWithScoreCard, nil
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.Boundary == nil {
+				return nil, errors.New("directive boundary is not implemented")
+			}
+			return ec.directives.Boundary(ctx, obj, directive0)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.([]*model.ContentItemWithScoreCard); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be []*github.com/ihac/graphql-poc-playground/bramble-federation/masthead/graph/model.ContentItemWithScoreCard`, tmp)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]*model.ContentItemWithScoreCard)
+	fc.Result = res
+	return ec.marshalOContentItemWithScoreCard2ᚕᚖgithubᚗcomᚋihacᚋgraphqlᚑpocᚑplaygroundᚋbrambleᚑfederationᚋmastheadᚋgraphᚋmodelᚐContentItemWithScoreCardᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Masthead_scoreCards(ctx context.Context, field graphql.CollectedField, obj *model.Masthead) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Masthead",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return obj.ScoreCards, nil
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.Boundary == nil {
+				return nil, errors.New("directive boundary is not implemented")
+			}
+			return ec.directives.Boundary(ctx, obj, directive0)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.([]*model.ScoreCard); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be []*github.com/ihac/graphql-poc-playground/bramble-federation/masthead/graph/model.ScoreCard`, tmp)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]*model.ScoreCard)
+	fc.Result = res
+	return ec.marshalOScoreCard2ᚕᚖgithubᚗcomᚋihacᚋgraphqlᚑpocᚑplaygroundᚋbrambleᚑfederationᚋmastheadᚋgraphᚋmodelᚐScoreCardᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Masthead_advtItems(ctx context.Context, field graphql.CollectedField, obj *model.Masthead) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Masthead",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return obj.AdvtItems, nil
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.Boundary == nil {
+				return nil, errors.New("directive boundary is not implemented")
+			}
+			return ec.directives.Boundary(ctx, obj, directive0)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.([]*model.AdvtItem); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be []*github.com/ihac/graphql-poc-playground/bramble-federation/masthead/graph/model.AdvtItem`, tmp)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]*model.AdvtItem)
+	fc.Result = res
+	return ec.marshalOAdvtItem2ᚕᚖgithubᚗcomᚋihacᚋgraphqlᚑpocᚑplaygroundᚋbrambleᚑfederationᚋmastheadᚋgraphᚋmodelᚐAdvtItemᚄ(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Query_masthead(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -552,6 +906,48 @@ func (ec *executionContext) _Query_masthead(ctx context.Context, field graphql.C
 	res := resTmp.([]model.MastheadItem)
 	fc.Result = res
 	return ec.marshalOMastheadItem2ᚕgithubᚗcomᚋihacᚋgraphqlᚑpocᚑplaygroundᚋbrambleᚑfederationᚋmastheadᚋgraphᚋmodelᚐMastheadItemᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_masthead_v2(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_masthead_v2_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().MastheadV2(rctx, args["count"].(*int))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Masthead)
+	fc.Result = res
+	return ec.marshalNMasthead2ᚖgithubᚗcomᚋihacᚋgraphqlᚑpocᚑplaygroundᚋbrambleᚑfederationᚋmastheadᚋgraphᚋmodelᚐMasthead(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_contentItem(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -617,6 +1013,71 @@ func (ec *executionContext) _Query_contentItem(ctx context.Context, field graphq
 	res := resTmp.(*model.ContentItem)
 	fc.Result = res
 	return ec.marshalOContentItem2ᚖgithubᚗcomᚋihacᚋgraphqlᚑpocᚑplaygroundᚋbrambleᚑfederationᚋmastheadᚋgraphᚋmodelᚐContentItem(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_contentItemWithScoreCard(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_contentItemWithScoreCard_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Query().ContentItemWithScoreCard(rctx, args["id"].(string))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.Boundary == nil {
+				return nil, errors.New("directive boundary is not implemented")
+			}
+			return ec.directives.Boundary(ctx, nil, directive0)
+		}
+		directive2 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.Boundary == nil {
+				return nil, errors.New("directive boundary is not implemented")
+			}
+			return ec.directives.Boundary(ctx, nil, directive1)
+		}
+
+		tmp, err := directive2(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*model.ContentItemWithScoreCard); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *github.com/ihac/graphql-poc-playground/bramble-federation/masthead/graph/model.ContentItemWithScoreCard`, tmp)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.ContentItemWithScoreCard)
+	fc.Result = res
+	return ec.marshalOContentItemWithScoreCard2ᚖgithubᚗcomᚋihacᚋgraphqlᚑpocᚑplaygroundᚋbrambleᚑfederationᚋmastheadᚋgraphᚋmodelᚐContentItemWithScoreCard(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_advtItem(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -782,61 +1243,6 @@ func (ec *executionContext) _Query_service(ctx context.Context, field graphql.Co
 	res := resTmp.(*model.Service)
 	fc.Result = res
 	return ec.marshalNService2ᚖgithubᚗcomᚋihacᚋgraphqlᚑpocᚑplaygroundᚋbrambleᚑfederationᚋmastheadᚋgraphᚋmodelᚐService(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Query_randomContent(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Query",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   true,
-		IsResolver: true,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		directive0 := func(rctx context.Context) (interface{}, error) {
-			ctx = rctx // use context from middleware stack in children
-			return ec.resolvers.Query().RandomContent(rctx)
-		}
-		directive1 := func(ctx context.Context) (interface{}, error) {
-			if ec.directives.Boundary == nil {
-				return nil, errors.New("directive boundary is not implemented")
-			}
-			return ec.directives.Boundary(ctx, nil, directive0)
-		}
-
-		tmp, err := directive1(rctx)
-		if err != nil {
-			return nil, graphql.ErrorOnPath(ctx, err)
-		}
-		if tmp == nil {
-			return nil, nil
-		}
-		if data, ok := tmp.(*model.ContentItem); ok {
-			return data, nil
-		}
-		return nil, fmt.Errorf(`unexpected type %T from directive, should be *github.com/ihac/graphql-poc-playground/bramble-federation/masthead/graph/model.ContentItem`, tmp)
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(*model.ContentItem)
-	fc.Result = res
-	return ec.marshalNContentItem2ᚖgithubᚗcomᚋihacᚋgraphqlᚑpocᚑplaygroundᚋbrambleᚑfederationᚋmastheadᚋgraphᚋmodelᚐContentItem(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query___type(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -2201,6 +2607,13 @@ func (ec *executionContext) _MastheadItem(ctx context.Context, sel ast.Selection
 			return graphql.Null
 		}
 		return ec._AdvtItem(ctx, sel, obj)
+	case model.ContentItemWithScoreCard:
+		return ec._ContentItemWithScoreCard(ctx, sel, &obj)
+	case *model.ContentItemWithScoreCard:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._ContentItemWithScoreCard(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -2269,6 +2682,63 @@ func (ec *executionContext) _ContentItem(ctx context.Context, sel ast.SelectionS
 	return out
 }
 
+var contentItemWithScoreCardImplementors = []string{"ContentItemWithScoreCard", "MastheadItem"}
+
+func (ec *executionContext) _ContentItemWithScoreCard(ctx context.Context, sel ast.SelectionSet, obj *model.ContentItemWithScoreCard) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, contentItemWithScoreCardImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("ContentItemWithScoreCard")
+		case "id":
+			out.Values[i] = ec._ContentItemWithScoreCard_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var mastheadImplementors = []string{"Masthead"}
+
+func (ec *executionContext) _Masthead(ctx context.Context, sel ast.SelectionSet, obj *model.Masthead) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, mastheadImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Masthead")
+		case "contentItems":
+			out.Values[i] = ec._Masthead_contentItems(ctx, field, obj)
+		case "contentItemsWithScoreCard":
+			out.Values[i] = ec._Masthead_contentItemsWithScoreCard(ctx, field, obj)
+		case "scoreCards":
+			out.Values[i] = ec._Masthead_scoreCards(ctx, field, obj)
+		case "advtItems":
+			out.Values[i] = ec._Masthead_advtItems(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
 var queryImplementors = []string{"Query"}
 
 func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) graphql.Marshaler {
@@ -2295,6 +2765,20 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 				res = ec._Query_masthead(ctx, field)
 				return res
 			})
+		case "masthead_v2":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_masthead_v2(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "contentItem":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
@@ -2304,6 +2788,17 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_contentItem(ctx, field)
+				return res
+			})
+		case "contentItemWithScoreCard":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_contentItemWithScoreCard(ctx, field)
 				return res
 			})
 		case "advtItem":
@@ -2337,20 +2832,6 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_service(ctx, field)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
-				return res
-			})
-		case "randomContent":
-			field := field
-			out.Concurrently(i, func() (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Query_randomContent(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
@@ -2685,6 +3166,16 @@ func (ec *executionContext) ___Type(ctx context.Context, sel ast.SelectionSet, o
 
 // region    ***************************** type.gotpl *****************************
 
+func (ec *executionContext) marshalNAdvtItem2ᚖgithubᚗcomᚋihacᚋgraphqlᚑpocᚑplaygroundᚋbrambleᚑfederationᚋmastheadᚋgraphᚋmodelᚐAdvtItem(ctx context.Context, sel ast.SelectionSet, v *model.AdvtItem) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._AdvtItem(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalNBoolean2bool(ctx context.Context, v interface{}) (bool, error) {
 	res, err := graphql.UnmarshalBoolean(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -2700,10 +3191,6 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 	return res
 }
 
-func (ec *executionContext) marshalNContentItem2githubᚗcomᚋihacᚋgraphqlᚑpocᚑplaygroundᚋbrambleᚑfederationᚋmastheadᚋgraphᚋmodelᚐContentItem(ctx context.Context, sel ast.SelectionSet, v model.ContentItem) graphql.Marshaler {
-	return ec._ContentItem(ctx, sel, &v)
-}
-
 func (ec *executionContext) marshalNContentItem2ᚖgithubᚗcomᚋihacᚋgraphqlᚑpocᚑplaygroundᚋbrambleᚑfederationᚋmastheadᚋgraphᚋmodelᚐContentItem(ctx context.Context, sel ast.SelectionSet, v *model.ContentItem) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
@@ -2712,6 +3199,16 @@ func (ec *executionContext) marshalNContentItem2ᚖgithubᚗcomᚋihacᚋgraphql
 		return graphql.Null
 	}
 	return ec._ContentItem(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNContentItemWithScoreCard2ᚖgithubᚗcomᚋihacᚋgraphqlᚑpocᚑplaygroundᚋbrambleᚑfederationᚋmastheadᚋgraphᚋmodelᚐContentItemWithScoreCard(ctx context.Context, sel ast.SelectionSet, v *model.ContentItemWithScoreCard) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._ContentItemWithScoreCard(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNID2string(ctx context.Context, v interface{}) (string, error) {
@@ -2729,6 +3226,20 @@ func (ec *executionContext) marshalNID2string(ctx context.Context, sel ast.Selec
 	return res
 }
 
+func (ec *executionContext) marshalNMasthead2githubᚗcomᚋihacᚋgraphqlᚑpocᚑplaygroundᚋbrambleᚑfederationᚋmastheadᚋgraphᚋmodelᚐMasthead(ctx context.Context, sel ast.SelectionSet, v model.Masthead) graphql.Marshaler {
+	return ec._Masthead(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNMasthead2ᚖgithubᚗcomᚋihacᚋgraphqlᚑpocᚑplaygroundᚋbrambleᚑfederationᚋmastheadᚋgraphᚋmodelᚐMasthead(ctx context.Context, sel ast.SelectionSet, v *model.Masthead) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._Masthead(ctx, sel, v)
+}
+
 func (ec *executionContext) marshalNMastheadItem2githubᚗcomᚋihacᚋgraphqlᚑpocᚑplaygroundᚋbrambleᚑfederationᚋmastheadᚋgraphᚋmodelᚐMastheadItem(ctx context.Context, sel ast.SelectionSet, v model.MastheadItem) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
@@ -2737,6 +3248,16 @@ func (ec *executionContext) marshalNMastheadItem2githubᚗcomᚋihacᚋgraphql�
 		return graphql.Null
 	}
 	return ec._MastheadItem(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNScoreCard2ᚖgithubᚗcomᚋihacᚋgraphqlᚑpocᚑplaygroundᚋbrambleᚑfederationᚋmastheadᚋgraphᚋmodelᚐScoreCard(ctx context.Context, sel ast.SelectionSet, v *model.ScoreCard) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._ScoreCard(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNService2githubᚗcomᚋihacᚋgraphqlᚑpocᚑplaygroundᚋbrambleᚑfederationᚋmastheadᚋgraphᚋmodelᚐService(ctx context.Context, sel ast.SelectionSet, v model.Service) graphql.Marshaler {
@@ -3025,6 +3546,53 @@ func (ec *executionContext) marshalN__TypeKind2string(ctx context.Context, sel a
 	return res
 }
 
+func (ec *executionContext) marshalOAdvtItem2ᚕᚖgithubᚗcomᚋihacᚋgraphqlᚑpocᚑplaygroundᚋbrambleᚑfederationᚋmastheadᚋgraphᚋmodelᚐAdvtItemᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.AdvtItem) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNAdvtItem2ᚖgithubᚗcomᚋihacᚋgraphqlᚑpocᚑplaygroundᚋbrambleᚑfederationᚋmastheadᚋgraphᚋmodelᚐAdvtItem(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
 func (ec *executionContext) marshalOAdvtItem2ᚖgithubᚗcomᚋihacᚋgraphqlᚑpocᚑplaygroundᚋbrambleᚑfederationᚋmastheadᚋgraphᚋmodelᚐAdvtItem(ctx context.Context, sel ast.SelectionSet, v *model.AdvtItem) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
@@ -3056,11 +3624,112 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 	return graphql.MarshalBoolean(*v)
 }
 
+func (ec *executionContext) marshalOContentItem2ᚕᚖgithubᚗcomᚋihacᚋgraphqlᚑpocᚑplaygroundᚋbrambleᚑfederationᚋmastheadᚋgraphᚋmodelᚐContentItemᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.ContentItem) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNContentItem2ᚖgithubᚗcomᚋihacᚋgraphqlᚑpocᚑplaygroundᚋbrambleᚑfederationᚋmastheadᚋgraphᚋmodelᚐContentItem(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
 func (ec *executionContext) marshalOContentItem2ᚖgithubᚗcomᚋihacᚋgraphqlᚑpocᚑplaygroundᚋbrambleᚑfederationᚋmastheadᚋgraphᚋmodelᚐContentItem(ctx context.Context, sel ast.SelectionSet, v *model.ContentItem) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
 	return ec._ContentItem(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalOContentItemWithScoreCard2ᚕᚖgithubᚗcomᚋihacᚋgraphqlᚑpocᚑplaygroundᚋbrambleᚑfederationᚋmastheadᚋgraphᚋmodelᚐContentItemWithScoreCardᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.ContentItemWithScoreCard) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNContentItemWithScoreCard2ᚖgithubᚗcomᚋihacᚋgraphqlᚑpocᚑplaygroundᚋbrambleᚑfederationᚋmastheadᚋgraphᚋmodelᚐContentItemWithScoreCard(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalOContentItemWithScoreCard2ᚖgithubᚗcomᚋihacᚋgraphqlᚑpocᚑplaygroundᚋbrambleᚑfederationᚋmastheadᚋgraphᚋmodelᚐContentItemWithScoreCard(ctx context.Context, sel ast.SelectionSet, v *model.ContentItemWithScoreCard) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._ContentItemWithScoreCard(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalOInt2ᚖint(ctx context.Context, v interface{}) (*int, error) {
@@ -3106,6 +3775,53 @@ func (ec *executionContext) marshalOMastheadItem2ᚕgithubᚗcomᚋihacᚋgraphq
 				defer wg.Done()
 			}
 			ret[i] = ec.marshalNMastheadItem2githubᚗcomᚋihacᚋgraphqlᚑpocᚑplaygroundᚋbrambleᚑfederationᚋmastheadᚋgraphᚋmodelᚐMastheadItem(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalOScoreCard2ᚕᚖgithubᚗcomᚋihacᚋgraphqlᚑpocᚑplaygroundᚋbrambleᚑfederationᚋmastheadᚋgraphᚋmodelᚐScoreCardᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.ScoreCard) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNScoreCard2ᚖgithubᚗcomᚋihacᚋgraphqlᚑpocᚑplaygroundᚋbrambleᚑfederationᚋmastheadᚋgraphᚋmodelᚐScoreCard(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)

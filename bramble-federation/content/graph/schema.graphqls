@@ -6,6 +6,16 @@ type ContentItem @boundary {
   description: String!
 }
 
+type ScoreCard @boundary {
+  id: ID!
+}
+
+type ContentItemWithScoreCard @boundary {
+  id: ID!
+  title: String!
+  score: ScoreCard!
+}
+
 type Service {
   name: String!
   version: String!
@@ -14,5 +24,9 @@ type Service {
 
 type Query {
   contentItem(id: ID!): ContentItem @boundary
+  contentItemWithScoreCard(id: ID!): ContentItemWithScoreCard @boundary
+  contentItemWithScoreCard__score(id: ID!): ScoreCard @boundary
+  randomContent: ContentItem!
+  randomContentWithScoreCard: ContentItemWithScoreCard!
   service: Service!
 }

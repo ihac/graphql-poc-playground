@@ -1,9 +1,15 @@
 directive @boundary on OBJECT | FIELD_DEFINITION
 
+type TinyAdsBanner @boundary {
+  id: ID!
+}
+
 type ScoreCard @boundary {
   id: ID!
   teamAScore: Int!
   teamBScore: Int!
+
+  ads: TinyAdsBanner!
 }
 
 type Service {
@@ -14,5 +20,6 @@ type Service {
 
 type Query {
   scoreCard(id: ID!): ScoreCard @boundary
+  scoreCard__ads(id: ID!): TinyAdsBanner @boundary
   service: Service!
 }

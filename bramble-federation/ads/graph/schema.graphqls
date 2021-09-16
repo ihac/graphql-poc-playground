@@ -5,6 +5,11 @@ type AdvtItem @boundary {
   trackerUrl: String!
 }
 
+type TinyAdsBanner @boundary {
+  id: ID!
+  message: String!
+}
+
 type Service {
   name: String!
   version: String!
@@ -13,5 +18,6 @@ type Service {
 
 type Query {
   advtItem(id: ID!): AdvtItem @boundary
+  tinyAdsBanner(id: ID!): TinyAdsBanner @boundary
   service: Service!
 }

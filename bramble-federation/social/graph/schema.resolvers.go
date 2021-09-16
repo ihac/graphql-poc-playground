@@ -14,12 +14,18 @@ import (
 )
 
 func (r *queryResolver) ScoreCard(ctx context.Context, id string) (*model.ScoreCard, error) {
+	fmt.Printf("query: score card %s\n", id)
 	score := rand.Intn(50) + 50
 	return &model.ScoreCard{
 		ID:         id,
 		TeamAScore: score + rand.Intn(20),
 		TeamBScore: score + rand.Intn(20),
 	}, nil
+}
+
+func (r *queryResolver) ScoreCardAds(ctx context.Context, id string) (*model.TinyAdsBanner, error) {
+	fmt.Printf("query: ads %s\n", id)
+	return &model.TinyAdsBanner{ID: id}, nil
 }
 
 func (r *queryResolver) Service(ctx context.Context) (*model.Service, error) {

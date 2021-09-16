@@ -13,10 +13,18 @@ import (
 )
 
 func (r *queryResolver) AdvtItem(ctx context.Context, id string) (*model.AdvtItem, error) {
-	fmt.Printf("query: %s\n", id)
+	fmt.Printf("query: advt item %s\n", id)
 	return &model.AdvtItem{
 		ID:         id,
 		TrackerURL: "https://example.com/tracker/url",
+	}, nil
+}
+
+func (r *queryResolver) TinyAdsBanner(ctx context.Context, id string) (*model.TinyAdsBanner, error) {
+	fmt.Printf("query: tiny ads %s\n", id)
+	return &model.TinyAdsBanner{
+		ID:      id,
+		Message: "This is the ads message",
 	}, nil
 }
 

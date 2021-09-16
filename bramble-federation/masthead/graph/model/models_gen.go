@@ -19,6 +19,19 @@ type ContentItem struct {
 
 func (ContentItem) IsMastheadItem() {}
 
+type ContentItemWithScoreCard struct {
+	ID string `json:"id"`
+}
+
+func (ContentItemWithScoreCard) IsMastheadItem() {}
+
+type Masthead struct {
+	ContentItems              []*ContentItem              `json:"contentItems"`
+	ContentItemsWithScoreCard []*ContentItemWithScoreCard `json:"contentItemsWithScoreCard"`
+	ScoreCards                []*ScoreCard                `json:"scoreCards"`
+	AdvtItems                 []*AdvtItem                 `json:"advtItems"`
+}
+
 type ScoreCard struct {
 	ID string `json:"id"`
 }

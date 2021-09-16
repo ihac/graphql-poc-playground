@@ -3,13 +3,18 @@
 package model
 
 type ScoreCard struct {
-	ID         string `json:"id"`
-	TeamAScore int    `json:"teamAScore"`
-	TeamBScore int    `json:"teamBScore"`
+	ID         string         `json:"id"`
+	TeamAScore int            `json:"teamAScore"`
+	TeamBScore int            `json:"teamBScore"`
+	Ads        *TinyAdsBanner `json:"ads"`
 }
 
 type Service struct {
 	Name    string `json:"name"`
 	Version string `json:"version"`
 	Schema  string `json:"schema"`
+}
+
+type TinyAdsBanner struct {
+	ID string `json:"id"`
 }
