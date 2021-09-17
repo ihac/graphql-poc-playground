@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
+	"strconv"
 
 	"github.com/ihac/graphql-poc-playground/bramble-federation/social/graph/generated"
 	"github.com/ihac/graphql-poc-playground/bramble-federation/social/graph/model"
@@ -20,6 +21,9 @@ func (r *queryResolver) ScoreCard(ctx context.Context, id string) (*model.ScoreC
 		ID:         id,
 		TeamAScore: score + rand.Intn(20),
 		TeamBScore: score + rand.Intn(20),
+		Ads: &model.TinyAdsBanner{
+			ID: strconv.Itoa(rand.Intn(1000)),
+		},
 	}, nil
 }
 
