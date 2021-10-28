@@ -25,7 +25,7 @@ func logger() log.Logger {
 		panic(err)
 	}
 
-	return log.NewZapLogger(logger, log.DebugLevel)
+	return log.NewZapLogger(logger, log.ErrorLevel)
 }
 
 func startServer() {
@@ -49,9 +49,9 @@ func startServer() {
 
 	datasourceWatcher := NewDatasourcePoller(httpClient, DatasourcePollerConfig{
 		Services: []ServiceConfig{
-			{Name: "accounts", URL: "http://localhost:4001/query"},
-			{Name: "products", URL: "http://localhost:4002/query", WS: "ws://localhost:4002/query"},
-			{Name: "reviews", URL: "http://localhost:4003/query"},
+			{Name: "accounts", URL: "http://gql-accounts:80/query"},
+			{Name: "products", URL: "http://gql-products:80/query", WS: "ws://gql-products:80/query"},
+			{Name: "reviews", URL: "http://gql-reviews:80/query"},
 		},
 		PollingInterval: 30 * time.Second,
 	})

@@ -60,11 +60,7 @@ type Gateway struct {
 }
 
 func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	g.mu.Lock()
-	handler := g.gqlHandler
-	g.mu.Unlock()
-
-	handler.ServeHTTP(w, r)
+	g.gqlHandler.ServeHTTP(w, r)
 }
 
 func (g *Gateway) Ready() {
@@ -72,6 +68,10 @@ func (g *Gateway) Ready() {
 }
 
 func (g *Gateway) UpdateDataSources(newDataSourcesConfig []graphqlDataSource.Configuration) {
+	if g.gqlHandler != nil {
+		return
+	}
+
 	ctx := context.Background()
 	engineConfigFactory := graphql.NewFederationEngineConfigFactory(newDataSourcesConfig, graphql.WithFederationHttpClient(g.httpClient))
 
