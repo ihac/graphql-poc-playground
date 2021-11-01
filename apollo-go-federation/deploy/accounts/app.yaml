@@ -30,7 +30,14 @@ spec:
       containers:
         - name: gql-accounts
           image: docker.io/ihac/accounts:1.0.0
-          imagePullPolicy: Always
+          # imagePullPolicy: Always
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "500m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
           ports:
             - name: http
               containerPort: 4001

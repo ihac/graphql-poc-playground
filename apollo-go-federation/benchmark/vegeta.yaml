@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vegeta
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vegeta
+  template:
+    metadata:
+      labels:
+        app: vegeta
+    spec:
+      containers:
+        - name: vegeta
+          image: docker.io/peterevans/vegeta
+          resources:
+            requests:
+              memory: "1024Mi"
+              cpu: "1000m"
+            limits:
+              memory: "1024Mi"
+              cpu: "1000m"
+          imagePullPolicy: IfNotPresent
+          command: ["/bin/sh", "-c", "--"]
+          args:
+            - "echo \"POST http://gql-gateway/query\n@/etc/test/data.json\" | vegeta attack -rate=1000 -duration=3m | vegeta report -every 10s"
+          volumeMounts:
+            - name: vegeta-data-volume
+              mountPath: "/etc/test"
+              readOnly: true
+      volumes:
+        - name: vegeta-data-volume
+          configMap:
+            name: vegeta-data
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vegeta-data
+data:
+  data.json: |
+    {"operationName":null,"variables":{},"query":"{\n  topProducts {\n    upc\n    name\n    reviews {\n      author {\n        username\n      }\n      body\n    }\n  }\n  me {\n    username\n    reviews {\n      product {\n        upc\n      }\n      body\n    }\n  }\n}\n"}
