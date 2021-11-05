@@ -1,0 +1,3 @@
+POST http://gql-gateway/query
+Content-Type: application/json
+@single_query.json

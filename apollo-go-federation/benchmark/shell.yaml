@@ -17,12 +17,35 @@ spec:
           image: docker.io/peterevans/vegeta
           resources:
             requests:
-              memory: "1024Mi"
-              cpu: "1000m"
+              memory: "4096Mi"
+              cpu: "4000m"
             limits:
-              memory: "1024Mi"
-              cpu: "1000m"
+              memory: "4096Mi"
+              cpu: "4000m"
           imagePullPolicy: IfNotPresent
           command: ["/bin/sh", "-c", "--"]
           args:
             - "while true; do echo hello; sleep 10; done"
+          volumeMounts:
+            - name: assets
+              mountPath: /test/single_query.json
+              subPath: single_query.json
+            - name: assets
+              mountPath: /test/composite_query.json
+              subPath: composite_query.json
+            - name: assets
+              mountPath: /test/test_single.txt
+              subPath: test_single.txt
+            - name: assets
+              mountPath: /test/test_composite.txt
+              subPath: test_composite.txt
+            - name: assets
+              mountPath: /test/test_single_apollo.txt
+              subPath: test_single_apollo.txt
+            - name: assets
+              mountPath: /test/test_composite_apollo.txt
+              subPath: test_composite_apollo.txt
+      volumes:
+        - name: assets
+          configMap:
+            name: assets

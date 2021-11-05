@@ -1,0 +1,3 @@
+POST http://gql-apollo-gateway/query
+Content-Type: application/json
+@composite_query.json

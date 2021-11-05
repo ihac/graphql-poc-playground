@@ -32,11 +32,11 @@ spec:
           image: docker.io/ihac/gateway:1.0.0
           resources:
             requests:
-              memory: "1024Mi"
-              cpu: "1000m"
+              memory: "8096Mi"
+              cpu: "8000m"
             limits:
-              memory: "1024Mi"
-              cpu: "1000m"
+              memory: "8096Mi"
+              cpu: "8000m"
           ports:
             - name: http
               containerPort: 4000
