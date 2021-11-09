@@ -6,7 +6,7 @@ DOCKER = DOCKER_BUILDKIT=1 docker
 HUB_ID = ihac
 VERSION = 1.0.0
 
-SERVICES = accounts reviews products gateway apollo-gateway
+SERVICES = accounts reviews products gateway apollo-gateway apollo-gateway-pm2
 
 .PHONY: all $(SERVICES)
 
