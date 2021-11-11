@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"runtime"
 	"strings"
 	"time"
 
@@ -101,5 +102,7 @@ func prettyAddr(addr string) string {
 }
 
 func main() {
+	fmt.Println("GOMAXPROCS:", runtime.GOMAXPROCS(0))
+	fmt.Println("NumCPU:", runtime.NumCPU())
 	startServer()
 }
